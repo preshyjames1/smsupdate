@@ -3,323 +3,72 @@
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { useAuth } from "@/lib/auth/context"
-import { useState, useEffect } from "react"
-import { doc, getDoc } from "firebase/firestore"
-import { db } from "@/lib/firebase"
+import { cn } from "@/lib/utils"
 import {
-  Sidebar,
-  SidebarContent,
-  SidebarFooter,
-  SidebarGroup,
-  SidebarGroupContent,
-  SidebarGroupLabel,
-  SidebarHeader,
-  SidebarMenu,
-  SidebarMenuButton,
-  SidebarMenuItem,
-  SidebarSeparator,
-} from "@/components/ui/sidebar"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
-import {
-  School,
-  LayoutDashboard,
   Users,
-  GraduationCap,
-  BookOpen,
-  Calendar,
-  ClipboardCheck,
+  Home,
+  Book,
   FileText,
-  MessageSquare,
-  BarChart3,
   Settings,
-  LogOut,
-  ChevronUp,
-  UserCheck,
-  Building,
-  CreditCard,
   Shield,
-  Upload,
+  BarChart,
+  DollarSign,
+  Megaphone,
+  Calendar,
+  UserCheck,
+  ClipboardList,
+  MessageSquare,
+  UploadCloud,
+  GraduationCap,
 } from "lucide-react"
 
-const navigationItems = [
-  {
-    title: "Overview",
-    items: [
-      {
-        title: "Dashboard",
-        url: "/dashboard",
-        icon: LayoutDashboard,
-      },
-    ],
-  },
-  {
-    title: "Role Management",
-    items: [
-      {
-        title: "Roles & Permissions",
-        url: "/dashboard/roles",
-        icon: Shield,
-      },
-    ],
-  },
-  {
-    title: "User Management",
-    items: [
-      {
-        title: "Students",
-        url: "/dashboard/students",
-        icon: GraduationCap,
-      },
-      {
-        title: "Teachers",
-        url: "/dashboard/teachers",
-        icon: UserCheck,
-      },
-      {
-        title: "Parents",
-        url: "/dashboard/parents",
-        icon: Users,
-      },
-      {
-        title: "Staff",
-        url: "/dashboard/staff",
-        icon: Building,
-      },
-      {
-        title: "Bulk Import",
-        url: "/dashboard/import",
-        icon: Upload,
-      },
-    ],
-  },
-  {
-    title: "Academic",
-    items: [
-      {
-        title: "Classes",
-        url: "/dashboard/classes",
-        icon: BookOpen,
-      },
-      {
-        title: "Subjects",
-        url: "/dashboard/subjects",
-        icon: FileText,
-      },
-      {
-        title: "Timetable",
-        url: "/dashboard/timetable",
-        icon: Calendar,
-      },
-      {
-        title: "Attendance",
-        url: "/dashboard/attendance",
-        icon: ClipboardCheck,
-      },
-    ],
-  },
-  {
-    title: "Communication",
-    items: [
-      {
-        title: "Messages",
-        url: "/dashboard/messages",
-        icon: MessageSquare,
-      },
-      {
-        title: "Announcements",
-        url: "/dashboard/announcements",
-        icon: FileText,
-      },
-    ],
-  },
-  {
-    title: "Reports & Analytics",
-    items: [
-      {
-        title: "Reports",
-        url: "/dashboard/reports",
-        icon: BarChart3,
-      },
-      {
-        title: "Analytics",
-        url: "/dashboard/analytics",
-        icon: BarChart3,
-      },
-    ],
-  },
+// Define navigation items with roles that can see them
+const navItems = [
+  { href: "/dashboard", icon: Home, label: "Overview", roles: ["school_admin", "teacher", "student", "parent"] },
+  { href: "/dashboard/students", icon: Users, label: "Students", roles: ["school_admin", "teacher"] },
+  { href: "/dashboard/teachers", icon: GraduationCap, label: "Teachers", roles: ["school_admin"] },
+  { href: "/dashboard/parents", icon: UserCheck, label: "Parents", roles: ["school_admin", "teacher"] },
+  { href: "/dashboard/staff", icon: Users, label: "Staff", roles: ["school_admin"] },
+  { href: "/dashboard/classes", icon: ClipboardList, label: "Classes", roles: ["school_admin", "teacher"] },
+  { href: "/dashboard/subjects", icon: Book, label: "Subjects", roles: ["school_admin", "teacher"] },
+  { href: "/dashboard/attendance", icon: Calendar, label: "Attendance", roles: ["school_admin", "teacher"] },
+  { href: "/dashboard/announcements", icon: Megaphone, label: "Announcements", roles: ["school_admin", "teacher", "student", "parent"] },
+  { href: "/dashboard/messages", icon: MessageSquare, label: "Messages", roles: ["school_admin", "teacher", "student", "parent"] },
+  { href: "/dashboard/billing", icon: DollarSign, label: "Billing", roles: ["school_admin", "parent"] },
+  { href: "/dashboard/reports", icon: FileText, label: "Reports", roles: ["school_admin", "teacher"] },
+  { href: "/dashboard/analytics", icon: BarChart, label: "Analytics", roles: ["school_admin"] },
+  { href: "/dashboard/import", icon: UploadCloud, label: "Bulk Import", roles: ["school_admin"] },
+  { href: "/dashboard/roles", icon: Shield, label: "Roles & Permissions", roles: ["school_admin"] },
+  { href: "/dashboard/settings", icon: Settings, label: "Settings", roles: ["school_admin"] },
 ]
 
 export function SidebarNav() {
   const pathname = usePathname()
-  const { user, signOut } = useAuth()
-  const [schoolName, setSchoolName] = useState<string>("Loading...")
+  const { user } = useAuth() // Get the current user from your auth context
 
-  useEffect(() => {
-    const fetchSchoolName = async () => {
-      if (user?.schoolId) {
-        try {
-          const schoolDoc = await getDoc(doc(db, "schools", user.schoolId))
-          if (schoolDoc.exists()) {
-            const schoolData = schoolDoc.data()
-            setSchoolName(schoolData.name || "My School")
-          }
-        } catch (error) {
-          console.error("Error fetching school data:", error)
-          setSchoolName("My School")
-        }
-      }
-    }
-
-    fetchSchoolName()
-  }, [user?.schoolId])
-
-  const handleSignOut = async () => {
-    try {
-      await signOut()
-    } catch (error) {
-      console.error("Error signing out:", error)
-    }
+  // If there's no user or user role, don't render the nav
+  if (!user?.role) {
+    return null
   }
 
   return (
-    <Sidebar variant="inset" collapsible="icon">
-      <SidebarHeader>
-        <div className="flex items-center gap-2 px-2 py-2">
-          <School className="h-8 w-8 text-primary" />
-          <div className="flex flex-col">
-            <span className="font-bold text-sm">{schoolName}</span>
-            <span className="text-xs text-muted-foreground">School Portal</span>
-          </div>
-        </div>
-      </SidebarHeader>
-
-      <SidebarContent>
-        {navigationItems.map((group) => (
-          <SidebarGroup key={group.title}>
-            <SidebarGroupLabel>{group.title}</SidebarGroupLabel>
-            <SidebarGroupContent>
-              <SidebarMenu>
-                {group.items.map((item) => (
-                  <SidebarMenuItem key={item.title}>
-                    <SidebarMenuButton asChild isActive={pathname === item.url} tooltip={item.title}>
-                      <Link href={item.url}>
-                        <item.icon />
-                        <span>{item.title}</span>
-                      </Link>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                ))}
-              </SidebarMenu>
-            </SidebarGroupContent>
-          </SidebarGroup>
-        ))}
-
-        <SidebarSeparator />
-
-        <SidebarGroup>
-          <SidebarGroupLabel>Administration</SidebarGroupLabel>
-          <SidebarGroupContent>
-            <SidebarMenu>
-              <SidebarMenuItem>
-                <SidebarMenuButton asChild isActive={pathname === "/dashboard/settings"} tooltip="Settings">
-                  <Link href="/dashboard/settings">
-                    <Settings />
-                    <span>Settings</span>
-                  </Link>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-              <SidebarMenuItem>
-                <SidebarMenuButton asChild isActive={pathname === "/dashboard/billing"} tooltip="Billing">
-                  <Link href="/dashboard/billing">
-                    <CreditCard />
-                    <span>Billing</span>
-                  </Link>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
-      </SidebarContent>
-
-      <SidebarFooter>
-        <SidebarMenu>
-          <SidebarMenuItem>
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <SidebarMenuButton
-                  size="lg"
-                  className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
-                >
-                  <Avatar className="h-8 w-8 rounded-lg">
-                    <AvatarImage src="/placeholder.svg" alt={user?.profile?.firstName} />
-                    <AvatarFallback className="rounded-lg">
-                      {user?.profile?.firstName?.[0]}
-                      {user?.profile?.lastName?.[0]}
-                    </AvatarFallback>
-                  </Avatar>
-                  <div className="grid flex-1 text-left text-sm leading-tight">
-                    <span className="truncate font-semibold">
-                      {user?.profile?.firstName} {user?.profile?.lastName}
-                    </span>
-                    <span className="truncate text-xs text-muted-foreground">{user?.email}</span>
-                  </div>
-                  <ChevronUp className="ml-auto size-4" />
-                </SidebarMenuButton>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent
-                className="w-(--radix-dropdown-menu-trigger-width) min-w-56 rounded-lg"
-                side="bottom"
-                align="end"
-                sideOffset={4}
-              >
-                <DropdownMenuLabel className="p-0 font-normal">
-                  <div className="flex items-center gap-2 px-1 py-1.5 text-left text-sm">
-                    <Avatar className="h-8 w-8 rounded-lg">
-                      <AvatarImage src="/placeholder.svg" alt={user?.profile?.firstName} />
-                      <AvatarFallback className="rounded-lg">
-                        {user?.profile?.firstName?.[0]}
-                        {user?.profile?.lastName?.[0]}
-                      </AvatarFallback>
-                    </Avatar>
-                    <div className="grid flex-1 text-left text-sm leading-tight">
-                      <span className="truncate font-semibold">
-                        {user?.profile?.firstName} {user?.profile?.lastName}
-                      </span>
-                      <span className="truncate text-xs text-muted-foreground">{user?.email}</span>
-                    </div>
-                  </div>
-                </DropdownMenuLabel>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem asChild>
-                  <Link href="/dashboard/profile">
-                    <Users className="mr-2 h-4 w-4" />
-                    Profile
-                  </Link>
-                </DropdownMenuItem>
-                <DropdownMenuItem asChild>
-                  <Link href="/dashboard/settings">
-                    <Settings className="mr-2 h-4 w-4" />
-                    Settings
-                  </Link>
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={handleSignOut}>
-                  <LogOut className="mr-2 h-4 w-4" />
-                  Sign Out
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </SidebarMenuItem>
-        </SidebarMenu>
-      </SidebarFooter>
-    </Sidebar>
+    <nav className="grid items-start gap-1 px-2 text-sm font-medium">
+      {navItems.map((item) =>
+        // Check if the user's role is included in the item's roles array
+        item.roles.includes(user.role) ? (
+          <Link
+            key={item.href}
+            href={item.href}
+            className={cn(
+              "flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary",
+              pathname === item.href && "bg-muted text-primary",
+            )}
+          >
+            <item.icon className="h-4 w-4" />
+            {item.label}
+          </Link>
+        ) : null, // If the role doesn't match, render nothing
+      )}
+    </nav>
   )
 }
