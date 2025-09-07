@@ -44,6 +44,7 @@ import {
   CreditCard,
   Shield,
   Upload,
+  Megaphone, // Corrected: Added Megaphone to the import list
 } from "lucide-react"
 import type { UserRole } from "@/lib/types"
 
@@ -263,3 +264,4 @@ export function SidebarNav() {
     </Sidebar>
   )
 }
+

@@ -1,104 +1,90 @@
 "use client"
 
-import { useState } from "react"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
-<<<<<<< HEAD
 import { CheckCircle, XCircle, Clock, AlertCircle, Save, Circle } from "lucide-react"
-=======
-import { CheckCircle, XCircle, Clock, AlertCircle, Save } from "lucide-react"
->>>>>>> 0b4583de8b821be2502537b9a1b15f5b7e084fdf
 import type { AttendanceRecord } from "@/lib/types/academic"
 
 interface Student {
   id: string
-  name: string
-  rollNumber: string
-  avatar?: string
+  profile: {
+    firstName: string
+    lastName: string
+    avatar?: string
+  }
 }
 
 interface AttendanceTrackerProps {
   students: Student[]
   date: Date
-  onSave: (records: Partial<AttendanceRecord>[]) => Promise<void>
   existingRecords?: AttendanceRecord[]
-  isLoading?: boolean
+  onSave: (records: Partial<AttendanceRecord>[]) => Promise<void>
+  isLoading: boolean
 }
 
 export function AttendanceTracker({
   students,
   date,
-  onSave,
   existingRecords = [],
-  isLoading = false,
+  onSave,
+  isLoading,
 }: AttendanceTrackerProps) {
-  const [attendanceData, setAttendanceData] = useState<Record<string, { status: string; notes: string }>>(() => {
+  const [attendanceData, setAttendanceData] = useState<
+    Record<string, { status: string; notes: string }>
+  >({})
+
+  useEffect(() => {
     const initial: Record<string, { status: string; notes: string }> = {}
     students.forEach((student) => {
       const existing = existingRecords.find((record) => record.studentId === student.id)
       initial[student.id] = {
-<<<<<<< HEAD
-        status: existing?.status || "",
-=======
-        status: existing?.status || "present",
->>>>>>> 0b4583de8b821be2502537b9a1b15f5b7e084fdf
+        status: existing?.status || "", // Default to not set
         notes: existing?.notes || "",
       }
     })
-    return initial
-  })
+    setAttendanceData(initial)
+  }, [students, existingRecords])
 
-  const updateAttendance = (studentId: string, status: string) => {
+  const handleStatusChange = (studentId: string, status: string) => {
     setAttendanceData((prev) => ({
       ...prev,
-      [studentId]: {
-        ...prev[studentId],
-        status,
-      },
+      [studentId]: { ...prev[studentId], status },
     }))
   }
 
-  const updateNotes = (studentId: string, notes: string) => {
+  const handleNotesChange = (studentId: string, notes: string) => {
     setAttendanceData((prev) => ({
       ...prev,
-      [studentId]: {
-        ...prev[studentId],
-        notes,
-      },
+      [studentId]: { ...prev[studentId], notes },
     }))
   }
 
   const handleSave = async () => {
-<<<<<<< HEAD
+    // Filter out students where attendance has not been marked
     const records: Partial<AttendanceRecord>[] = students
+      .filter((student) => !!attendanceData[student.id]?.status)
       .map((student) => ({
         studentId: student.id,
         date,
-        status: attendanceData[student.id]?.status as "present" | "absent" | "late" | "excused" | "",
+        classId: "", // This should be passed as a prop if needed
+        status: attendanceData[student.id]?.status as "present" | "absent" | "late" | "excused",
         notes: attendanceData[student.id]?.notes,
       }))
-      .filter((record) => record.status !== "")
 
     if (records.length === 0) {
-      alert("No attendance records to save.")
+      // Consider using a toast notification instead of an alert
+      console.warn("No attendance records to save.")
       return
     }
-=======
-    const records: Partial<AttendanceRecord>[] = students.map((student) => ({
-      studentId: student.id,
-      date,
-      status: attendanceData[student.id]?.status as "present" | "absent" | "late" | "excused",
-      notes: attendanceData[student.id]?.notes,
-    }))
->>>>>>> 0b4583de8b821be2502537b9a1b15f5b7e084fdf
 
     await onSave(records)
   }
 
-  const getStatusIcon = (status: string) => {
+  const getIconForStatus = (status: string) => {
     switch (status) {
       case "present":
         return <CheckCircle className="h-4 w-4 text-green-500" />
@@ -109,15 +95,11 @@ export function AttendanceTracker({
       case "excused":
         return <AlertCircle className="h-4 w-4 text-blue-500" />
       default:
-<<<<<<< HEAD
-        return <Circle className="h-4 w-4 text-gray-500" />
-=======
-        return <CheckCircle className="h-4 w-4 text-green-500" />
->>>>>>> 0b4583de8b821be2502537b9a1b15f5b7e084fdf
+        return <Circle className="h-4 w-4 text-gray-500" /> // Icon for "not set"
     }
   }
 
-  const getStatusColor = (status: string) => {
+  const getVariantForStatus = (status: string) => {
     switch (status) {
       case "present":
         return "default"
@@ -128,181 +110,92 @@ export function AttendanceTracker({
       case "excused":
         return "outline"
       default:
-<<<<<<< HEAD
-        return "secondary"
-=======
-        return "default"
->>>>>>> 0b4583de8b821be2502537b9a1b15f5b7e084fdf
+        return "secondary" // Variant for "not set"
     }
   }
 
   const stats = students.reduce(
     (acc, student) => {
-<<<<<<< HEAD
       const status = attendanceData[student.id]?.status || ""
       acc[status || "not_set"] = (acc[status || "not_set"] || 0) + 1
       return acc
     },
-    { not_set: 0 } as Record<string, number>,
-=======
-      const status = attendanceData[student.id]?.status || "present"
-      acc[status] = (acc[status] || 0) + 1
-      return acc
-    },
-    {} as Record<string, number>,
->>>>>>> 0b4583de8b821be2502537b9a1b15f5b7e084fdf
+    { not_set: 0 } as Record<string, number>
   )
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-2xl font-bold tracking-tight">Attendance Tracker</h2>
-          <p className="text-muted-foreground">Mark attendance for {date.toLocaleDateString()}</p>
+    <Card>
+      <CardHeader>
+        <CardTitle>Attendance for {date.toLocaleDateString()}</CardTitle>
+        <CardDescription>Mark the attendance for each student in the class.</CardDescription>
+        <div className="flex flex-wrap gap-4 pt-4 text-sm">
+          <span className="flex items-center gap-2">
+            <CheckCircle className="h-4 w-4 text-green-500" /> Present: {stats.present || 0}
+          </span>
+          <span className="flex items-center gap-2">
+            <XCircle className="h-4 w-4 text-red-500" /> Absent: {stats.absent || 0}
+          </span>
+          <span className="flex items-center gap-2">
+            <Clock className="h-4 w-4 text-yellow-500" /> Late: {stats.late || 0}
+          </span>
+          <span className="flex items-center gap-2">
+            <AlertCircle className="h-4 w-4 text-blue-500" /> Excused: {stats.excused || 0}
+          </span>
+          <span className="flex items-center gap-2">
+            <Circle className="h-4 w-4 text-gray-500" /> Not Set: {stats.not_set || 0}
+          </span>
         </div>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        {students.map((student) => (
+          <div key={student.id} className="flex flex-col sm:flex-row items-start sm:items-center gap-4 rounded-md border p-3">
+            <div className="flex items-center gap-3 flex-1">
+              <Avatar>
+                <AvatarImage src={student.profile.avatar} />
+                <AvatarFallback>
+                  {student.profile.firstName[0]}
+                  {student.profile.lastName[0]}
+                </AvatarFallback>
+              </Avatar>
+              <div>
+                <p className="font-medium">
+                  {student.profile.firstName} {student.profile.lastName}
+                </p>
+                <p className="text-sm text-muted-foreground">{student.id}</p>
+              </div>
+            </div>
+            <div className="flex w-full sm:w-auto items-center gap-2">
+              <Select
+                value={attendanceData[student.id]?.status || ""}
+                onValueChange={(value) => handleStatusChange(student.id, value)}
+              >
+                <SelectTrigger className="w-full sm:w-[120px]">
+                  <SelectValue placeholder="Mark..." />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="present">Present</SelectItem>
+                  <SelectItem value="absent">Absent</SelectItem>
+                  <SelectItem value="late">Late</SelectItem>
+                  <SelectItem value="excused">Excused</SelectItem>
+                </SelectContent>
+              </Select>
+              <Textarea
+                placeholder="Notes..."
+                value={attendanceData[student.id]?.notes || ""}
+                onChange={(e) => handleNotesChange(student.id, e.target.value)}
+                className="flex-1 sm:w-[200px]"
+                rows={1}
+              />
+            </div>
+          </div>
+        ))}
+      </CardContent>
+      <CardFooter>
         <Button onClick={handleSave} disabled={isLoading}>
           <Save className="mr-2 h-4 w-4" />
           {isLoading ? "Saving..." : "Save Attendance"}
         </Button>
-      </div>
-
-      {/* Stats */}
-<<<<<<< HEAD
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-=======
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
->>>>>>> 0b4583de8b821be2502537b9a1b15f5b7e084fdf
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-2">
-              <CheckCircle className="h-4 w-4 text-green-500" />
-              <div>
-                <p className="text-sm font-medium">Present</p>
-                <p className="text-2xl font-bold">{stats.present || 0}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-2">
-              <XCircle className="h-4 w-4 text-red-500" />
-              <div>
-                <p className="text-sm font-medium">Absent</p>
-                <p className="text-2xl font-bold">{stats.absent || 0}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-2">
-              <Clock className="h-4 w-4 text-yellow-500" />
-              <div>
-                <p className="text-sm font-medium">Late</p>
-                <p className="text-2xl font-bold">{stats.late || 0}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-2">
-              <AlertCircle className="h-4 w-4 text-blue-500" />
-              <div>
-                <p className="text-sm font-medium">Excused</p>
-                <p className="text-2xl font-bold">{stats.excused || 0}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-<<<<<<< HEAD
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-2">
-              <Circle className="h-4 w-4 text-gray-500" />
-              <div>
-                <p className="text-sm font-medium">Not Set</p>
-                <p className="text-2xl font-bold">{stats.not_set || 0}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-=======
->>>>>>> 0b4583de8b821be2502537b9a1b15f5b7e084fdf
-      </div>
-
-      {/* Student List */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Students</CardTitle>
-          <CardDescription>Mark attendance for each student</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          {students.map((student) => (
-            <div key={student.id} className="flex items-center gap-4 p-4 border rounded-lg">
-              <Avatar className="h-10 w-10">
-                <AvatarImage src={student.avatar || "/placeholder.svg"} />
-                <AvatarFallback>
-                  {student.name
-                    .split(" ")
-                    .map((n) => n[0])
-                    .join("")}
-                </AvatarFallback>
-              </Avatar>
-
-              <div className="flex-1">
-                <p className="font-medium">{student.name}</p>
-                <p className="text-sm text-muted-foreground">Roll No: {student.rollNumber}</p>
-              </div>
-
-              <div className="flex items-center gap-2">
-<<<<<<< HEAD
-                {getStatusIcon(attendanceData[student.id]?.status || "")}
-                <Select
-                  value={attendanceData[student.id]?.status || ""}
-=======
-                {getStatusIcon(attendanceData[student.id]?.status || "present")}
-                <Select
-                  value={attendanceData[student.id]?.status || "present"}
->>>>>>> 0b4583de8b821be2502537b9a1b15f5b7e084fdf
-                  onValueChange={(value) => updateAttendance(student.id, value)}
-                  disabled={isLoading}
-                >
-                  <SelectTrigger className="w-32">
-<<<<<<< HEAD
-                    <SelectValue placeholder="Not Set" />
-=======
-                    <SelectValue />
->>>>>>> 0b4583de8b821be2502537b9a1b15f5b7e084fdf
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="present">Present</SelectItem>
-                    <SelectItem value="absent">Absent</SelectItem>
-                    <SelectItem value="late">Late</SelectItem>
-                    <SelectItem value="excused">Excused</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="w-48">
-                <Textarea
-                  placeholder="Notes (optional)"
-                  value={attendanceData[student.id]?.notes || ""}
-                  onChange={(e) => updateNotes(student.id, e.target.value)}
-                  className="min-h-[60px]"
-                  disabled={isLoading}
-                />
-              </div>
-            </div>
-          ))}
-        </CardContent>
-      </Card>
-    </div>
+      </CardFooter>
+    </Card>
   )
-<<<<<<< HEAD
 }
-=======
-}
->>>>>>> 0b4583de8b821be2502537b9a1b15f5b7e084fdf
