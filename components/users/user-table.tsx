@@ -4,7 +4,14 @@ import { useState, useEffect } from "react"
 import { useAuth } from "@/lib/auth/context"
 import { collection, query, where, getDocs } from "firebase/firestore"
 import { db } from "@/lib/firebase"
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
@@ -17,8 +24,24 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 import { Search, MoreHorizontal, Edit, Eye, Trash2 } from "lucide-react"
 import type { User } from "@/lib/types"
 
@@ -30,12 +53,19 @@ interface UserTableProps {
   onView?: (user: User) => void
 }
 
-export function UserTable({ users, userType, onEdit, onDelete, onView }: UserTableProps) {
+export function UserTable({
+  users,
+  userType,
+  onEdit,
+  onDelete,
+  onView,
+}: UserTableProps) {
   const { user } = useAuth()
   const [searchTerm, setSearchTerm] = useState("")
   const [statusFilter, setStatusFilter] = useState<"all" | "active" | "inactive">("all")
   const [classFilter, setClassFilter] = useState<string>("all")
   const [classes, setClasses] = useState<any[]>([])
+  const [userToDelete, setUserToDelete] = useState<User | null>(null)
 
   useEffect(() => {
     const fetchClasses = async () => {
@@ -45,7 +75,7 @@ export function UserTable({ users, userType, onEdit, onDelete, onView }: UserTab
         const classesQuery = query(
           collection(db, "classes"),
           where("schoolId", "==", user.schoolId),
-          where("isActive", "==", true),
+          where("isActive", "==", true)
         )
         const classesSnapshot = await getDocs(classesQuery)
         const classesData = classesSnapshot.docs.map((doc) => ({
@@ -72,7 +102,8 @@ export function UserTable({ users, userType, onEdit, onDelete, onView }: UserTab
       (statusFilter === "active" && user.isActive) ||
       (statusFilter === "inactive" && !user.isActive)
 
-    const matchesClass = userType !== "students" || classFilter === "all" || user.profile?.classId === classFilter
+    const matchesClass =
+      userType !== "students" || classFilter === "all" || user.profile?.classId === classFilter
 
     return matchesSearch && matchesStatus && matchesClass
   })
@@ -95,6 +126,17 @@ export function UserTable({ users, userType, onEdit, onDelete, onView }: UserTab
   const getClassName = (classId: string) => {
     const classData = classes.find((c) => c.id === classId)
     return classData ? `${classData.name} - ${classData.section}` : "No Class"
+  }
+  
+  const confirmDelete = (user: User) => {
+    setUserToDelete(user);
+  }
+
+  const executeDelete = () => {
+    if (userToDelete && onDelete) {
+      onDelete(userToDelete)
+    }
+    setUserToDelete(null)
   }
 
   return (
@@ -179,11 +221,17 @@ export function UserTable({ users, userType, onEdit, onDelete, onView }: UserTab
             <TableBody>
               {filteredUsers.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={userType === "students" ? 7 : 6} className="text-center py-8">
+                  <TableCell
+                    colSpan={userType === "students" ? 7 : 6}
+                    className="text-center py-8"
+                  >
                     <div className="text-muted-foreground">
                       {searchTerm || statusFilter !== "all" || classFilter !== "all"
                         ? `No ${userType} found matching your criteria.`
-                        : `No ${userType} found. Add your first ${userType.slice(0, -1)} to get started.`}
+                        : `No ${userType} found. Add your first ${userType.slice(
+                            0,
+                            -1
+                          )} to get started.`}
                     </div>
                   </TableCell>
                 </TableRow>
@@ -193,7 +241,9 @@ export function UserTable({ users, userType, onEdit, onDelete, onView }: UserTab
                     <TableCell>
                       <div className="flex items-center gap-3">
                         <Avatar className="h-8 w-8">
-                          <AvatarImage src={user.profile.avatar || "/placeholder.svg"} />
+                          <AvatarImage
+                            src={user.profile.avatar || "/placeholder.svg"}
+                          />
                           <AvatarFallback>
                             {user.profile.firstName[0]}
                             {user.profile.lastName[0]}
@@ -204,7 +254,9 @@ export function UserTable({ users, userType, onEdit, onDelete, onView }: UserTab
                             {user.profile.firstName} {user.profile.lastName}
                           </div>
                           {user.profile.phone && (
-                            <div className="text-sm text-muted-foreground">{user.profile.phone}</div>
+                            <div className="text-sm text-muted-foreground">
+                              {user.profile.phone}
+                            </div>
                           )}
                         </div>
                       </div>
@@ -218,7 +270,9 @@ export function UserTable({ users, userType, onEdit, onDelete, onView }: UserTab
                     {userType === "students" && (
                       <TableCell>
                         <Badge variant="outline">
-                          {user.profile?.classId ? getClassName(user.profile.classId) : "No Class"}
+                          {user.profile?.classId
+                            ? getClassName(user.profile.classId)
+                            : "No Class"}
                         </Badge>
                       </TableCell>
                     )}
@@ -227,7 +281,9 @@ export function UserTable({ users, userType, onEdit, onDelete, onView }: UserTab
                         {user.isActive ? "Active" : "Inactive"}
                       </Badge>
                     </TableCell>
-                    <TableCell>{new Date(user.createdAt).toLocaleDateString()}</TableCell>
+                    <TableCell>
+                      {new Date(user.createdAt).toLocaleDateString()}
+                    </TableCell>
                     <TableCell>
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
@@ -248,7 +304,10 @@ export function UserTable({ users, userType, onEdit, onDelete, onView }: UserTab
                             Edit
                           </DropdownMenuItem>
                           <DropdownMenuSeparator />
-                          <DropdownMenuItem onClick={() => onDelete?.(user)} className="text-destructive">
+                          <DropdownMenuItem
+                            onClick={() => confirmDelete(user)}
+                            className="text-destructive"
+                          >
                             <Trash2 className="mr-2 h-4 w-4" />
                             Delete
                           </DropdownMenuItem>
@@ -262,6 +321,21 @@ export function UserTable({ users, userType, onEdit, onDelete, onView }: UserTab
           </Table>
         </CardContent>
       </Card>
+      
+      <AlertDialog open={!!userToDelete} onOpenChange={() => setUserToDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action cannot be undone. This will mark the user as inactive and they will no longer be able to access the system.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={executeDelete}>Continue</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {/* Summary */}
       <div className="text-sm text-muted-foreground">
