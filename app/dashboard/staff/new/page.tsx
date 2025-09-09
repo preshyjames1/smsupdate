@@ -8,15 +8,7 @@ import { db } from "@/lib/firebase"
 import { DashboardHeader } from "@/components/dashboard/dashboard-header"
 import { UserForm } from "@/components/users/user-form"
 import type { User } from "@/lib/types"
-
-function generateTempPassword(): string {
-  const chars = "ABCDEFGHJKMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz234-56789!@#$%&*"
-  let password = ""
-  for (let i = 0; i < 8; i++) {
-    password += chars.charAt(Math.floor(Math.random() * chars.length))
-  }
-  return password
-}
+import { generateTempPassword } from "@/lib/utils" // <-- IMPORTED FROM UTILS
 
 export default function NewStaffPage() {
   const router = useRouter()
@@ -30,13 +22,14 @@ export default function NewStaffPage() {
 
     setIsLoading(true)
     try {
+      // RECOMMENDATION: Use a more robust unique ID generation method if high concurrency is expected.
       const userId = `staff_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
       const tempPassword = generateTempPassword()
 
       const userDoc: Partial<User> = {
         ...userData,
         schoolId: user.schoolId,
-        // The role will be set within the UserForm component, defaulting to "teacher"
+        // The role will be set within the UserForm component, defaulting to "receptionist" for staff
         createdAt: new Date(),
         updatedAt: new Date(),
         isActive: true,
@@ -71,7 +64,6 @@ export default function NewStaffPage() {
       />
 
       <div className="space-y-6">
-       
         <UserForm userType="staff" onSubmit={handleSubmit} isLoading={isLoading} />
       </div>
     </div>

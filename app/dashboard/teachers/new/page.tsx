@@ -8,15 +8,7 @@ import { db } from "@/lib/firebase"
 import { DashboardHeader } from "@/components/dashboard/dashboard-header"
 import { UserForm } from "@/components/users/user-form"
 import type { User } from "@/lib/types"
-
-function generateTempPassword(): string {
-  const chars = "ABCDEFGHJKMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789!@#$%&*"
-  let password = ""
-  for (let i = 0; i < 8; i++) {
-    password += chars.charAt(Math.floor(Math.random() * chars.length))
-  }
-  return password
-}
+import { generateTempPassword } from "@/lib/utils" // <-- IMPORTED FROM UTILS
 
 export default function NewTeacherPage() {
   const router = useRouter()
@@ -30,6 +22,8 @@ export default function NewTeacherPage() {
 
     setIsLoading(true)
     try {
+      // RECOMMENDATION: Use a more robust unique ID generation method if high concurrency is expected.
+      // For now, this is sufficient for most cases.
       const userId = `teacher_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
       const tempPassword = generateTempPassword()
 
@@ -71,7 +65,6 @@ export default function NewTeacherPage() {
       />
 
       <div className="space-y-6">
-        
         <UserForm userType="teachers" onSubmit={handleSubmit} isLoading={isLoading} />
       </div>
     </div>

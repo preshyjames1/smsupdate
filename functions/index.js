@@ -3,7 +3,6 @@ const functions = require("firebase-functions");
 let admin;
 let adminInitialized = false;
 /**
- * FIX: Added JSDoc comment to satisfy the 'require-jsdoc' rule.
  * Initializes the Firebase Admin SDK lazily and ensures it's only done once.
  */
 function ensureAdminInitialized() {
@@ -274,7 +273,6 @@ const emailTemplates = {
 };
 
 /**
- * FIX: Added JSDoc comment to satisfy the 'require-jsdoc' rule.
  * Sends an email using the configured Nodemailer transporter.
  * @param {string} to The recipient's email address.
  * @param {object} template An object containing the email's subject and HTML content.

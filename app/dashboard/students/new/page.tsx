@@ -8,15 +8,7 @@ import { db } from "@/lib/firebase"
 import { DashboardHeader } from "@/components/dashboard/dashboard-header"
 import { UserForm } from "@/components/users/user-form"
 import type { User } from "@/lib/types"
-
-function generateTempPassword(): string {
-  const chars = "ABCDEFGHJKMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789!@#$%&*"
-  let password = ""
-  for (let i = 0; i < 8; i++) {
-    password += chars.charAt(Math.floor(Math.random() * chars.length))
-  }
-  return password
-}
+import { generateTempPassword } from "@/lib/utils" // <-- IMPORT THE FUNCTION
 
 export default function NewStudentPage() {
   const router = useRouter()
@@ -31,7 +23,7 @@ export default function NewStudentPage() {
     setIsLoading(true)
     try {
       const userId = `student_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
-      const tempPassword = generateTempPassword()
+      const tempPassword = generateTempPassword() // <-- USE THE FUNCTION
 
       const userDoc: Partial<User> = {
         ...userData,
