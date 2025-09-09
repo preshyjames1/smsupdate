@@ -3,6 +3,7 @@
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { useAuth } from "@/lib/auth/context"
+import { useState } from "react"
 import {
   Sidebar,
   SidebarContent,
@@ -39,12 +40,13 @@ import {
   Settings,
   LogOut,
   ChevronUp,
+  ChevronRight,
   UserCheck,
   Building,
   CreditCard,
   Shield,
   Upload,
-  Megaphone, // Corrected: Added Megaphone to the import list
+  Megaphone,
 } from "lucide-react"
 import type { UserRole } from "@/lib/types"
 
@@ -104,6 +106,7 @@ const navigationGroups = [
 export function SidebarNav() {
   const pathname = usePathname()
   const { user, schoolData, signOut } = useAuth()
+  const [openGroup, setOpenGroup] = useState<string | null>(navigationGroups[0]?.title || null)
 
   const handleSignOut = async () => {
     try {
@@ -131,37 +134,64 @@ export function SidebarNav() {
       <SidebarContent>
         {navigationGroups
           .filter(group => group.roles.includes(userRole))
-          .map((group) => (
-          <SidebarGroup key={group.title}>
-            <SidebarGroupLabel>{group.title}</SidebarGroupLabel>
-            <SidebarGroupContent>
-              <SidebarMenu>
-                {group.items
-                  .filter(item => item.roles.includes(userRole))
-                  .map((item) => (
-                  <SidebarMenuItem key={item.title}>
-                    <SidebarMenuButton asChild isActive={pathname === item.url} tooltip={item.title}>
-                      <Link href={item.url}>
-                        <item.icon />
-                        <span>{item.title}</span>
-                      </Link>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                ))}
-              </SidebarMenu>
-            </SidebarGroupContent>
-          </SidebarGroup>
-        ))}
+          .map((group) => {
+            const isOpen = openGroup === group.title;
+            return (
+              <SidebarGroup key={group.title}>
+                <SidebarGroupLabel
+                  asChild
+                  className="cursor-pointer"
+                  onClick={() => setOpenGroup(isOpen ? null : group.title)}
+                >
+                  <button className="flex w-full items-center justify-between">
+                    {/* FIX: Applied a consistent font style */}
+                    <span className="text-sm font-medium text-muted-foreground">{group.title}</span>
+                    <ChevronRight
+                      className={`h-3 w-3 text-muted-foreground opacity-50 transition-transform duration-300 ${
+                        isOpen ? "rotate-90" : ""
+                      }`}
+                    />
+                  </button>
+                </SidebarGroupLabel>
+                
+                <div
+                  className={`overflow-hidden transition-all duration-300 ease-in-out ${
+                    isOpen ? "max-h-96 opacity-100" : "max-h-0 opacity-0"
+                  }`}
+                >
+                  <SidebarGroupContent>
+                    <SidebarMenu>
+                      {group.items
+                        .filter(item => item.roles.includes(userRole))
+                        .map((item) => (
+                        <SidebarMenuItem key={item.title}>
+                          <SidebarMenuButton size="sm" className="text-[13px]" asChild isActive={pathname === item.url} tooltip={item.title}>
+                            <Link href={item.url}>
+                              <item.icon />
+                              <span>{item.title}</span>
+                            </Link>
+                          </SidebarMenuButton>
+                        </SidebarMenuItem>
+                      ))}
+                    </SidebarMenu>
+                  </SidebarGroupContent>
+                </div>
+              </SidebarGroup>
+            )
+          })}
 
         <SidebarSeparator />
 
         {userRole === 'school_admin' && (
           <SidebarGroup>
-            <SidebarGroupLabel>Administration</SidebarGroupLabel>
+            {/* FIX: Removed 'asChild' and applied classes directly for consistency */}
+            <SidebarGroupLabel className="text-sm font-medium text-muted-foreground px-2">
+               Administration
+            </SidebarGroupLabel>
             <SidebarGroupContent>
               <SidebarMenu>
                  <SidebarMenuItem>
-                    <SidebarMenuButton asChild isActive={pathname === "/dashboard/roles"} tooltip="Roles & Permissions">
+                    <SidebarMenuButton size="sm" className="text-[13px]" asChild isActive={pathname === "/dashboard/roles"} tooltip="Roles & Permissions">
                       <Link href="/dashboard/roles">
                         <Shield />
                         <span>Roles & Permissions</span>
@@ -169,7 +199,7 @@ export function SidebarNav() {
                     </SidebarMenuButton>
                   </SidebarMenuItem>
                 <SidebarMenuItem>
-                  <SidebarMenuButton asChild isActive={pathname === "/dashboard/settings"} tooltip="Settings">
+                  <SidebarMenuButton size="sm" className="text-[13px]" asChild isActive={pathname === "/dashboard/settings"} tooltip="Settings">
                     <Link href="/dashboard/settings">
                       <Settings />
                       <span>Settings</span>
@@ -177,7 +207,7 @@ export function SidebarNav() {
                   </SidebarMenuButton>
                 </SidebarMenuItem>
                 <SidebarMenuItem>
-                  <SidebarMenuButton asChild isActive={pathname === "/dashboard/billing"} tooltip="Billing">
+                  <SidebarMenuButton size="sm" className="text-[13px]" asChild isActive={pathname === "/dashboard/billing"} tooltip="Billing">
                     <Link href="/dashboard/billing">
                       <CreditCard />
                       <span>Billing</span>
@@ -264,4 +294,3 @@ export function SidebarNav() {
     </Sidebar>
   )
 }
-

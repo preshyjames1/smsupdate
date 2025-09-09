@@ -71,11 +71,7 @@ export default function NewStaffPage() {
       />
 
       <div className="space-y-6">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Add New Staff Member</h1>
-          <p className="text-muted-foreground">Create a new staff account</p>
-        </div>
-
+       
         <UserForm userType="staff" onSubmit={handleSubmit} isLoading={isLoading} />
       </div>
     </div>

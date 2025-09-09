@@ -3,7 +3,6 @@
 import type React from "react"
 
 import { useState, useEffect } from "react"
-import { useRouter } from "next/navigation"
 import { useAuth } from "@/lib/auth/context"
 import { collection, query, where, getDocs } from "firebase/firestore"
 import { db } from "@/lib/firebase"
@@ -26,7 +25,6 @@ interface UserFormProps {
 }
 
 export function UserForm({ user, userType, onSubmit, isLoading = false }: UserFormProps) {
-  const router = useRouter()
   const { user: currentUser } = useAuth()
   const [error, setError] = useState("")
   const [classes, setClasses] = useState<any[]>([])
@@ -39,7 +37,7 @@ export function UserForm({ user, userType, onSubmit, isLoading = false }: UserFo
     gender: user?.profile?.gender || "",
     avatar: user?.profile?.avatar || "",
     avatarPath: user?.profile?.avatarPath || "",
-    classId: user?.profile?.classId || "",
+    classId: user?.classId || "",
     address: {
       street: user?.profile?.address?.street || "",
       city: user?.profile?.address?.city || "",
@@ -59,7 +57,7 @@ export function UserForm({ user, userType, onSubmit, isLoading = false }: UserFo
         const classesQuery = query(
           collection(db, "classes"),
           where("schoolId", "==", currentUser.schoolId),
-          where("isActive", "==", true),
+          where("isActive", "==", true)
         )
         const classesSnapshot = await getDocs(classesQuery)
         const classesData = classesSnapshot.docs.map((doc) => ({
@@ -84,7 +82,7 @@ export function UserForm({ user, userType, onSubmit, isLoading = false }: UserFo
       case "parents":
         return "parent"
       case "staff":
-        return "teacher" // Default staff role
+        return "receptionist"
       default:
         return "student"
     }
@@ -134,8 +132,8 @@ export function UserForm({ user, userType, onSubmit, isLoading = false }: UserFo
           avatar: formData.avatar,
           avatarPath: formData.avatarPath,
           address: formData.address,
-          ...(userType === "students" && formData.classId && { classId: formData.classId }),
         },
+        ...(userType === "students" && formData.classId && { classId: formData.classId }),
       }
 
       await onSubmit(userData)
@@ -145,10 +143,10 @@ export function UserForm({ user, userType, onSubmit, isLoading = false }: UserFo
   }
 
   const isEditing = !!user
+  const singularUserType = userType === "staff" ? "staff" : userType.slice(0, -1)
 
   return (
     <div className="space-y-6">
-      {/* Header */}
       <div className="flex items-center gap-4">
         <Link href={`/dashboard/${userType}`}>
           <Button variant="outline" size="icon">
@@ -157,10 +155,12 @@ export function UserForm({ user, userType, onSubmit, isLoading = false }: UserFo
         </Link>
         <div>
           <h1 className="text-2xl font-bold tracking-tight">
-            {isEditing ? "Edit" : "Add New"} {userType.slice(0, -1)}
+            {isEditing ? "Edit" : "Add New"} {singularUserType}
           </h1>
           <p className="text-muted-foreground">
-            {isEditing ? "Update user information" : "Create a new user account with temporary password sent via email"}
+            {isEditing
+              ? "Update user information"
+              : `Create a new ${singularUserType} account`}
           </p>
         </div>
       </div>
@@ -172,7 +172,6 @@ export function UserForm({ user, userType, onSubmit, isLoading = false }: UserFo
           </Alert>
         )}
 
-        {/* Personal Information */}
         <Card>
           <CardHeader>
             <CardTitle>Personal Information</CardTitle>
@@ -187,7 +186,6 @@ export function UserForm({ user, userType, onSubmit, isLoading = false }: UserFo
               userName={`${formData.firstName} ${formData.lastName}`.trim() || "User"}
               className="max-w-sm"
             />
-
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="firstName">First Name *</Label>
@@ -210,7 +208,6 @@ export function UserForm({ user, userType, onSubmit, isLoading = false }: UserFo
                 />
               </div>
             </div>
-
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="email">Email Address *</Label>
@@ -224,7 +221,7 @@ export function UserForm({ user, userType, onSubmit, isLoading = false }: UserFo
                 />
                 {!isEditing && (
                   <p className="text-sm text-muted-foreground">
-                    A temporary password will be automatically generated and sent to this email address.
+                    A temporary password will be sent to this email address.
                   </p>
                 )}
               </div>
@@ -239,7 +236,6 @@ export function UserForm({ user, userType, onSubmit, isLoading = false }: UserFo
                 />
               </div>
             </div>
-
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="dateOfBirth">Date of Birth</Label>
@@ -269,19 +265,21 @@ export function UserForm({ user, userType, onSubmit, isLoading = false }: UserFo
                 </Select>
               </div>
             </div>
-
             {userType === "students" && (
               <div className="space-y-2">
                 <Label htmlFor="classId">Assign to Class</Label>
                 <Select
-                  value={formData.classId}
-                  onValueChange={(value) => handleInputChange("classId", value)}
+                  // FIX 1: The value prop handles an empty string state by defaulting to "none"
+                  value={formData.classId || "none"}
+                  // FIX 2: onValueChange converts "none" back to an empty string for the state
+                  onValueChange={(value) => handleInputChange("classId", value === "none" ? "" : value)}
                   disabled={isLoading}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Select a class (optional)" />
                   </SelectTrigger>
                   <SelectContent>
+                    {/* FIX 3: The value is now a non-empty keyword */}
                     <SelectItem value="none">No Class Assigned</SelectItem>
                     {classes.map((classData) => (
                       <SelectItem key={classData.id} value={classData.id}>
@@ -290,15 +288,11 @@ export function UserForm({ user, userType, onSubmit, isLoading = false }: UserFo
                     ))}
                   </SelectContent>
                 </Select>
-                <p className="text-sm text-muted-foreground">
-                  Assign this student to a class. You can change this later if needed.
-                </p>
               </div>
             )}
           </CardContent>
         </Card>
 
-        {/* Address Information */}
         <Card>
           <CardHeader>
             <CardTitle>Address Information</CardTitle>
@@ -314,7 +308,6 @@ export function UserForm({ user, userType, onSubmit, isLoading = false }: UserFo
                 disabled={isLoading}
               />
             </div>
-
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="city">City</Label>
@@ -335,7 +328,6 @@ export function UserForm({ user, userType, onSubmit, isLoading = false }: UserFo
                 />
               </div>
             </div>
-
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="country">Country</Label>
@@ -359,7 +351,6 @@ export function UserForm({ user, userType, onSubmit, isLoading = false }: UserFo
           </CardContent>
         </Card>
 
-        {/* Account Settings */}
         <Card>
           <CardHeader>
             <CardTitle>Account Settings</CardTitle>
@@ -383,6 +374,7 @@ export function UserForm({ user, userType, onSubmit, isLoading = false }: UserFo
                     <SelectItem value="parent">Parent</SelectItem>
                     <SelectItem value="accountant">Accountant</SelectItem>
                     <SelectItem value="librarian">Librarian</SelectItem>
+                    <SelectItem value="receptionist">Receptionist</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -406,7 +398,6 @@ export function UserForm({ user, userType, onSubmit, isLoading = false }: UserFo
           </CardContent>
         </Card>
 
-        {/* Actions */}
         <div className="flex items-center gap-4">
           <Button type="submit" disabled={isLoading}>
             {isLoading ? (

@@ -71,11 +71,7 @@ export default function NewTeacherPage() {
       />
 
       <div className="space-y-6">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Add New Teacher</h1>
-          <p className="text-muted-foreground">Create a new teacher account</p>
-        </div>
-
+        
         <UserForm userType="teachers" onSubmit={handleSubmit} isLoading={isLoading} />
       </div>
     </div>

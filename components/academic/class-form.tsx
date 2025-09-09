@@ -1,15 +1,12 @@
+// src/components/academic/class-form.tsx
+
 "use client"
 
 import type React from "react"
-
-<<<<<<< HEAD
 import { useState, useEffect } from "react"
 import { useAuth } from "@/lib/auth/context"
 import { collection, query, where, getDocs } from "firebase/firestore"
 import { db } from "@/lib/firebase"
-=======
-import { useState } from "react"
->>>>>>> 0b4583de8b821be2502537b9a1b15f5b7e084fdf
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -18,10 +15,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Badge } from "@/components/ui/badge"
-<<<<<<< HEAD
 import { Checkbox } from "@/components/ui/checkbox"
-=======
->>>>>>> 0b4583de8b821be2502537b9a1b15f5b7e084fdf
 import { Loader2, ArrowLeft, X } from "lucide-react"
 import type { Class } from "@/lib/types/academic"
 import Link from "next/link"
@@ -32,17 +26,16 @@ interface ClassFormProps {
   isLoading?: boolean
 }
 
+const gradeLevels = ["Kindergarten", "Grade 1", "Grade 2", "Grade 3", "Grade 4", "Grade 5", "Grade 6", "Grade 7", "Grade 8", "Grade 9", "Grade 10", "Grade 11", "Grade 12"];
+
+// This is a NAMED export
 export function ClassForm({ classData, onSubmit, isLoading = false }: ClassFormProps) {
-<<<<<<< HEAD
   const { user } = useAuth()
   const [error, setError] = useState("")
   const [availableSubjects, setAvailableSubjects] = useState<any[]>([])
   const [loadingSubjects, setLoadingSubjects] = useState(true)
   const [teachers, setTeachers] = useState<any[]>([])
   const [loadingTeachers, setLoadingTeachers] = useState(true)
-=======
-  const [error, setError] = useState("")
->>>>>>> 0b4583de8b821be2502537b9a1b15f5b7e084fdf
   const [formData, setFormData] = useState({
     name: classData?.name || "",
     section: classData?.section || "",
@@ -53,7 +46,6 @@ export function ClassForm({ classData, onSubmit, isLoading = false }: ClassFormP
     academicYear: classData?.academicYear || new Date().getFullYear().toString(),
     subjects: classData?.subjects || [],
     isActive: classData?.isActive ?? true,
-<<<<<<< HEAD
     classTeacherId: classData?.classTeacherId || "",
   })
   const [newSubject, setNewSubject] = useState("")
@@ -67,7 +59,7 @@ export function ClassForm({ classData, onSubmit, isLoading = false }: ClassFormP
         const subjectsQuery = query(
           collection(db, "subjects"),
           where("schoolId", "==", user.schoolId),
-          where("isActive", "==", true),
+          where("isActive", "==", true)
         )
         const subjectsSnapshot = await getDocs(subjectsQuery)
         const subjectsData = subjectsSnapshot.docs.map((doc) => ({
@@ -75,7 +67,6 @@ export function ClassForm({ classData, onSubmit, isLoading = false }: ClassFormP
           ...doc.data(),
         }))
         setAvailableSubjects(subjectsData)
-        console.log("[v0] Fetched subjects:", subjectsData)
       } catch (error) {
         console.error("Error fetching subjects:", error)
         setError("Failed to load subjects")
@@ -93,7 +84,7 @@ export function ClassForm({ classData, onSubmit, isLoading = false }: ClassFormP
           collection(db, "users"),
           where("schoolId", "==", user.schoolId),
           where("role", "==", "teacher"),
-          where("isActive", "==", true),
+          where("isActive", "==", true)
         )
         const teachersSnapshot = await getDocs(teachersQuery)
         const teachersData = teachersSnapshot.docs.map((doc) => ({
@@ -101,7 +92,6 @@ export function ClassForm({ classData, onSubmit, isLoading = false }: ClassFormP
           ...doc.data(),
         }))
         setTeachers(teachersData)
-        console.log("[v0] Fetched teachers:", teachersData)
       } catch (error) {
         console.error("Error fetching teachers:", error)
         setError("Failed to load teachers")
@@ -114,11 +104,6 @@ export function ClassForm({ classData, onSubmit, isLoading = false }: ClassFormP
     fetchTeachers()
   }, [user?.schoolId])
 
-=======
-  })
-  const [newSubject, setNewSubject] = useState("")
-
->>>>>>> 0b4583de8b821be2502537b9a1b15f5b7e084fdf
   const handleInputChange = (field: string, value: string | number | boolean) => {
     setFormData((prev) => ({
       ...prev,
@@ -126,27 +111,19 @@ export function ClassForm({ classData, onSubmit, isLoading = false }: ClassFormP
     }))
   }
 
-<<<<<<< HEAD
-  const addSubjectById = (subjectId: string) => {
-    if (subjectId && !formData.subjects.includes(subjectId)) {
-      setFormData((prev) => ({
-        ...prev,
-        subjects: [...prev.subjects, subjectId],
-      }))
-    }
-  }
-
   const toggleSubject = (subjectId: string, checked: boolean) => {
+    let updatedSubjects = [...formData.subjects]
     if (checked) {
-      addSubjectById(subjectId)
+      if (!updatedSubjects.includes(subjectId)) {
+        updatedSubjects.push(subjectId)
+      }
     } else {
-      removeSubject(subjectId)
+      updatedSubjects = updatedSubjects.filter((id) => id !== subjectId)
     }
+    setFormData((prev) => ({ ...prev, subjects: updatedSubjects }))
   }
 
-=======
->>>>>>> 0b4583de8b821be2502537b9a1b15f5b7e084fdf
-  const addSubject = () => {
+  const addCustomSubject = () => {
     if (newSubject.trim() && !formData.subjects.includes(newSubject.trim())) {
       setFormData((prev) => ({
         ...prev,
@@ -156,40 +133,27 @@ export function ClassForm({ classData, onSubmit, isLoading = false }: ClassFormP
     }
   }
 
-  const removeSubject = (subject: string) => {
+  const removeSubject = (subjectToRemove: string) => {
     setFormData((prev) => ({
       ...prev,
-      subjects: prev.subjects.filter((s) => s !== subject),
+      subjects: prev.subjects.filter((s) => s !== subjectToRemove),
     }))
   }
 
-<<<<<<< HEAD
   const getSubjectName = (subjectId: string) => {
     const subject = availableSubjects.find((s) => s.id === subjectId)
-    return subject ? subject.name : subjectId
+    return subject ? subject.name : subjectId // Fallback to ID if not found (for custom subjects)
   }
 
-=======
->>>>>>> 0b4583de8b821be2502537b9a1b15f5b7e084fdf
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError("")
 
     try {
       const classDataToSubmit: Partial<Class> = {
-        name: formData.name,
-        section: formData.section,
-        grade: formData.grade,
-        capacity: formData.capacity,
-        room: formData.room,
-        description: formData.description,
-        academicYear: formData.academicYear,
-        subjects: formData.subjects,
-        isActive: formData.isActive,
-<<<<<<< HEAD
-        classTeacherId: formData.classTeacherId,
-=======
->>>>>>> 0b4583de8b821be2502537b9a1b15f5b7e084fdf
+        ...formData,
+        // Ensure classTeacherId is an empty string if "none" was selected
+        classTeacherId: formData.classTeacherId === "none" ? "" : formData.classTeacherId,
       }
 
       await onSubmit(classDataToSubmit)
@@ -202,7 +166,6 @@ export function ClassForm({ classData, onSubmit, isLoading = false }: ClassFormP
 
   return (
     <div className="space-y-6">
-      {/* Header */}
       <div className="flex items-center gap-4">
         <Link href="/dashboard/classes">
           <Button variant="outline" size="icon">
@@ -224,7 +187,6 @@ export function ClassForm({ classData, onSubmit, isLoading = false }: ClassFormP
           </Alert>
         )}
 
-        {/* Basic Information */}
         <Card>
           <CardHeader>
             <CardTitle>Basic Information</CardTitle>
@@ -238,7 +200,7 @@ export function ClassForm({ classData, onSubmit, isLoading = false }: ClassFormP
                   id="name"
                   value={formData.name}
                   onChange={(e) => handleInputChange("name", e.target.value)}
-                  placeholder="e.g., Mathematics"
+                  placeholder="e.g., Grade 5"
                   required
                   disabled={isLoading}
                 />
@@ -255,19 +217,20 @@ export function ClassForm({ classData, onSubmit, isLoading = false }: ClassFormP
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="grade">Grade *</Label>
+                <Label htmlFor="grade">Grade Level *</Label>
                 <Select
                   value={formData.grade}
                   onValueChange={(value) => handleInputChange("grade", value)}
                   disabled={isLoading}
+                  required
                 >
                   <SelectTrigger>
-                    <SelectValue placeholder="Select grade" />
+                    <SelectValue placeholder="Select grade level" />
                   </SelectTrigger>
                   <SelectContent>
-                    {Array.from({ length: 12 }, (_, i) => i + 1).map((grade) => (
-                      <SelectItem key={grade} value={grade.toString()}>
-                        Grade {grade}
+                    {gradeLevels.map((grade) => (
+                      <SelectItem key={grade} value={grade}>
+                        {grade}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -290,7 +253,7 @@ export function ClassForm({ classData, onSubmit, isLoading = false }: ClassFormP
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="room">Room</Label>
+                <Label htmlFor="room">Room Number</Label>
                 <Input
                   id="room"
                   value={formData.room}
@@ -332,220 +295,101 @@ export function ClassForm({ classData, onSubmit, isLoading = false }: ClassFormP
             </div>
           </CardContent>
         </Card>
-
-<<<<<<< HEAD
-        {/* Class Teacher Assignment */}
+        
         <Card>
           <CardHeader>
-            <CardTitle>Class Teacher Assignment</CardTitle>
-            <CardDescription>Assign a teacher to be responsible for this class</CardDescription>
+            <CardTitle>Class Teacher</CardTitle>
+            <CardDescription>Assign a primary teacher for this class.</CardDescription>
           </CardHeader>
-          <CardContent className="space-y-4">
+          <CardContent>
             {loadingTeachers ? (
-              <div className="flex items-center justify-center py-4">
-                <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                <span className="text-sm text-muted-foreground">Loading teachers...</span>
-              </div>
+                <p>Loading teachers...</p>
             ) : (
-              <div className="space-y-2">
-                <Label htmlFor="classTeacherId">Class Teacher</Label>
                 <Select
-                  value={formData.classTeacherId}
+                  value={formData.classTeacherId || "none"}
                   onValueChange={(value) => handleInputChange("classTeacherId", value)}
                   disabled={isLoading}
                 >
                   <SelectTrigger>
-                    <SelectValue placeholder="Select a class teacher (optional)" />
+                    <SelectValue placeholder="Select a teacher (optional)" />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="none">No Teacher Assigned</SelectItem>
                     {teachers.map((teacher) => (
                       <SelectItem key={teacher.id} value={teacher.id}>
                         {teacher.profile?.firstName} {teacher.profile?.lastName}
-                        {teacher.email && <span className="text-muted-foreground ml-2">({teacher.email})</span>}
                       </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
-                <p className="text-sm text-muted-foreground">
-                  Assign a teacher to be the primary class teacher. This teacher will have additional responsibilities
-                  for this class.
-                </p>
-                {teachers.length === 0 && (
-                  <p className="text-sm text-muted-foreground">
-                    No teachers found. Create teachers first in the{" "}
-                    <Link href="/dashboard/teachers" className="text-primary hover:underline">
-                      Teachers
-                    </Link>{" "}
-                    section.
-                  </p>
-                )}
-              </div>
             )}
           </CardContent>
         </Card>
 
-=======
->>>>>>> 0b4583de8b821be2502537b9a1b15f5b7e084fdf
-        {/* Subjects */}
         <Card>
           <CardHeader>
             <CardTitle>Subjects</CardTitle>
-<<<<<<< HEAD
-            <CardDescription>Select subjects taught in this class</CardDescription>
+            <CardDescription>Select subjects taught in this class from the list, or add custom ones.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             {loadingSubjects ? (
-              <div className="flex items-center justify-center py-4">
-                <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                <span className="text-sm text-muted-foreground">Loading subjects...</span>
-              </div>
-            ) : availableSubjects.length > 0 ? (
-              <div className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+              <p>Loading subjects...</p>
+            ) : (
+              <>
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                   {availableSubjects.map((subject) => (
                     <div key={subject.id} className="flex items-center space-x-2">
                       <Checkbox
-                        id={subject.id}
+                        id={`subject-${subject.id}`}
                         checked={formData.subjects.includes(subject.id)}
                         onCheckedChange={(checked) => toggleSubject(subject.id, checked as boolean)}
-                        disabled={isLoading}
                       />
-                      <Label htmlFor={subject.id} className="text-sm font-normal cursor-pointer">
-                        {subject.name}
-                        {subject.code && <span className="text-muted-foreground ml-1">({subject.code})</span>}
-                      </Label>
+                      <Label htmlFor={`subject-${subject.id}`}>{subject.name}</Label>
                     </div>
                   ))}
                 </div>
 
-                {formData.subjects.length > 0 && (
-                  <div className="space-y-2">
-                    <Label className="text-sm font-medium">Selected Subjects:</Label>
-                    <div className="flex flex-wrap gap-2">
-                      {formData.subjects.map((subjectId) => (
-                        <Badge key={subjectId} variant="secondary" className="flex items-center gap-1">
-                          {getSubjectName(subjectId)}
-                          <button
-                            type="button"
-                            onClick={() => removeSubject(subjectId)}
-                            className="ml-1 hover:text-destructive"
-                            disabled={isLoading}
-                          >
-                            <X className="h-3 w-3" />
-                          </button>
-                        </Badge>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </div>
-            ) : (
-              <div className="text-center py-4">
-                <p className="text-muted-foreground">No subjects found.</p>
-                <p className="text-sm text-muted-foreground mt-1">
-                  Create subjects first in the{" "}
-                  <Link href="/dashboard/subjects" className="text-primary hover:underline">
-                    Subjects
-                  </Link>{" "}
-                  section.
-                </p>
-              </div>
+                <div className="flex gap-2">
+                  <Input
+                    value={newSubject}
+                    onChange={(e) => setNewSubject(e.target.value)}
+                    placeholder="Add custom subject"
+                    onKeyPress={(e) => {
+                      if (e.key === "Enter") {
+                        e.preventDefault();
+                        addCustomSubject();
+                      }
+                    }}
+                  />
+                  <Button type="button" onClick={addCustomSubject} disabled={!newSubject.trim()}>
+                    Add
+                  </Button>
+                </div>
+              </>
             )}
 
-            <div className="border-t pt-4">
-              <Label className="text-sm font-medium">Add Custom Subject</Label>
-              <div className="flex gap-2 mt-2">
-                <Input
-                  value={newSubject}
-                  onChange={(e) => setNewSubject(e.target.value)}
-                  placeholder="Add a custom subject"
-                  disabled={isLoading}
-                  onKeyPress={(e) => {
-                    if (e.key === "Enter") {
-                      e.preventDefault()
-                      addSubject()
-                    }
-                  }}
-                />
-                <Button type="button" onClick={addSubject} disabled={isLoading || !newSubject.trim()}>
-                  Add
-                </Button>
-              </div>
-              <p className="text-xs text-muted-foreground mt-1">
-                Use this to add subjects that aren't in your subjects list yet.
-              </p>
-            </div>
-=======
-            <CardDescription>Subjects taught in this class</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="flex gap-2">
-              <Input
-                value={newSubject}
-                onChange={(e) => setNewSubject(e.target.value)}
-                placeholder="Add a subject"
-                disabled={isLoading}
-                onKeyPress={(e) => {
-                  if (e.key === "Enter") {
-                    e.preventDefault()
-                    addSubject()
-                  }
-                }}
-              />
-              <Button type="button" onClick={addSubject} disabled={isLoading || !newSubject.trim()}>
-                Add
-              </Button>
-            </div>
-
             {formData.subjects.length > 0 && (
-              <div className="flex flex-wrap gap-2">
+              <div className="flex flex-wrap gap-2 pt-4">
                 {formData.subjects.map((subject) => (
-                  <Badge key={subject} variant="secondary" className="flex items-center gap-1">
-                    {subject}
-                    <button
+                  <Badge key={subject} variant="secondary">
+                    {getSubjectName(subject)}
+                    <Button
                       type="button"
+                      variant="ghost"
+                      size="icon"
+                      title="Remove subject"
                       onClick={() => removeSubject(subject)}
-                      className="ml-1 hover:text-destructive"
-                      disabled={isLoading}
+                      className="ml-2 rounded-full outline-none hover:bg-destructive/80"
                     >
                       <X className="h-3 w-3" />
-                    </button>
+                    </Button>
                   </Badge>
                 ))}
               </div>
             )}
->>>>>>> 0b4583de8b821be2502537b9a1b15f5b7e084fdf
           </CardContent>
         </Card>
 
-        {/* Settings */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Settings</CardTitle>
-            <CardDescription>Class status and configuration</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-2">
-              <Label htmlFor="status">Status</Label>
-              <Select
-                value={formData.isActive ? "active" : "inactive"}
-                onValueChange={(value) => handleInputChange("isActive", value === "active")}
-                disabled={isLoading}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="active">Active</SelectItem>
-                  <SelectItem value="inactive">Inactive</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Actions */}
         <div className="flex items-center gap-4">
           <Button type="submit" disabled={isLoading}>
             {isLoading ? (

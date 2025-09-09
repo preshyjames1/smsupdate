@@ -50,7 +50,8 @@ export default function NewStudentPage() {
       console.log("[v0] Student created successfully:", userId)
       console.log("[v0] Temporary password generated:", tempPassword)
       console.log("[v0] Firebase functions will create auth account and send temp password via email")
-
+    // router.refresh() // <-- ADD THIS LINE
+     
       router.push("/dashboard/students")
     } catch (error: any) {
       console.error("Error creating student:", error)
@@ -71,11 +72,7 @@ export default function NewStudentPage() {
       />
 
       <div className="space-y-6">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Add New Student</h1>
-          <p className="text-muted-foreground">Create a new student account</p>
-        </div>
-
+        
         <UserForm userType="students" onSubmit={handleSubmit} isLoading={isLoading} />
       </div>
     </div>

@@ -1,3 +1,4 @@
+// FIX: Added optional properties for the user creation workflow.
 export interface User {
   id: string
   email: string
@@ -9,6 +10,10 @@ export interface User {
   createdAt: Date
   updatedAt: Date
   isActive: boolean
+  authStatus?: "pending" | "complete" | "error"
+  tempPasswordSent?: boolean
+  tempPassword?: string
+  classId?: string // <-- ADD THIS OPTIONAL PROPERTY
 }
 
 export type UserRole =
@@ -134,17 +139,8 @@ export interface FeatureFlags {
 
 export type SubscriptionPlan = "free" | "basic" | "premium" | "enterprise"
 
-export interface Class {
-  id: string
-  schoolId: string
-  name: string
-  section: string
-  capacity: number
-  classTeacherId?: string
-  subjects: string[]
-  academicYear: string
-  isActive: boolean
-}
+// FIX: The duplicate 'Class' interface has been removed from this file.
+// You should now import 'Class' from './academic.ts' wherever it is needed.
 
 export interface Student {
   id: string

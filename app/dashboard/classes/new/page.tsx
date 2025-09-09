@@ -1,25 +1,31 @@
+// src/app/dashboard/classes/new/page.tsx
+
 "use client"
 
 import { useState } from "react"
 import { useRouter } from "next/navigation"
-<<<<<<< HEAD
 import { useAuth } from "@/lib/auth/context"
-import { collection, addDoc } from "firebase/firestore"
+import { collection, addDoc, serverTimestamp } from "firebase/firestore"
 import { db } from "@/lib/firebase"
-=======
->>>>>>> 0b4583de8b821be2502537b9a1b15f5b7e084fdf
 import { DashboardHeader } from "@/components/dashboard/dashboard-header"
+// This is a NAMED import, using curly braces
 import { ClassForm } from "@/components/academic/class-form"
+import { useToast } from "@/components/ui/use-toast"
 import type { Class } from "@/lib/types/academic"
 
 export default function NewClassPage() {
   const router = useRouter()
-<<<<<<< HEAD
   const { user } = useAuth()
+  const { toast } = useToast()
   const [isLoading, setIsLoading] = useState(false)
 
   const handleSubmit = async (classData: Partial<Class>) => {
     if (!user?.schoolId) {
+      toast({
+        title: "Error",
+        description: "Could not find your school information. Please try again.",
+        variant: "destructive",
+      })
       throw new Error("School ID not found")
     }
 
@@ -28,30 +34,28 @@ export default function NewClassPage() {
       const classToCreate = {
         ...classData,
         schoolId: user.schoolId,
-        classTeacherId: "", // Will be assigned later
-        createdAt: new Date(),
-        updatedAt: new Date(),
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
         isActive: true,
       }
 
       const docRef = await addDoc(collection(db, "classes"), classToCreate)
       console.log("Class created with ID:", docRef.id)
-=======
-  const [isLoading, setIsLoading] = useState(false)
 
-  const handleSubmit = async (classData: Partial<Class>) => {
-    setIsLoading(true)
-    try {
-      // Implement Firebase class creation
-      console.log("Creating class:", classData)
-
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 2000))
->>>>>>> 0b4583de8b821be2502537b9a1b15f5b7e084fdf
-
+      toast({
+        title: "Success!",
+        description: `Class "${classData.name}" has been created successfully.`,
+      })
+      
+      router.refresh(); // Refresh data on the classes page
       router.push("/dashboard/classes")
     } catch (error) {
       console.error("Error creating class:", error)
+      toast({
+        title: "Error",
+        description: "Failed to create the class. Please try again.",
+        variant: "destructive",
+      })
       throw error
     } finally {
       setIsLoading(false)

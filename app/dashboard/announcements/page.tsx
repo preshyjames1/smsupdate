@@ -46,13 +46,13 @@ import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Badge } from "@/components/ui/badge"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { Megaphone, PlusCircle, Edit, Trash2, Loader2, Info } from "lucide-react"
-import type { Announcement, User } from "@/lib/types"
+import { Megaphone, PlusCircle, Edit, Trash2, Loader2 } from "lucide-react"
+import type { User } from "@/lib/types"
+import type { Announcement } from "@/lib/types/communication"
 
-// Extend the Announcement type to include the author's data
+type AudienceRole = "students" | "teachers" | "parents" | "staff"
 type AnnouncementWithAuthor = Announcement & { author?: Pick<User, "id" | "profile"> }
 
-// Announcement Form Component for Create/Edit
 const AnnouncementForm: FC<{
   announcement?: AnnouncementWithAuthor
   onSave: (data: Partial<Announcement>) => Promise<void>
@@ -60,13 +60,17 @@ const AnnouncementForm: FC<{
 }> = ({ announcement, onSave, isLoading }) => {
   const [title, setTitle] = useState(announcement?.title || "")
   const [content, setContent] = useState(announcement?.content || "")
-  const [targetAudience, setTargetAudience] = useState<string[]>(
+  const [targetAudience, setTargetAudience] = useState<AudienceRole[]>(
     Array.isArray(announcement?.targetAudience) ? announcement.targetAudience : []
   )
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
     onSave({ title, content, targetAudience })
+  }
+
+  const handleAudienceChange = (value: string) => {
+    setTargetAudience(value === "all" ? [] : [value as AudienceRole])
   }
 
   return (
@@ -88,7 +92,7 @@ const AnnouncementForm: FC<{
       <div className="space-y-2">
         <Label htmlFor="targetAudience">Target Audience</Label>
         <Select
-          onValueChange={(value) => setTargetAudience(value === "all" ? [] : [value])}
+          onValueChange={handleAudienceChange}
           defaultValue={targetAudience.length === 0 ? "all" : targetAudience[0]}
         >
           <SelectTrigger>
@@ -96,9 +100,9 @@ const AnnouncementForm: FC<{
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All Users</SelectItem>
-            <SelectItem value="teacher">Teachers</SelectItem>
-            <SelectItem value="student">Students</SelectItem>
-            <SelectItem value="parent">Parents</SelectItem>
+            <SelectItem value="teachers">Teachers</SelectItem>
+            <SelectItem value="students">Students</SelectItem>
+            <SelectItem value="parents">Parents</SelectItem>
           </SelectContent>
         </Select>
       </div>
@@ -150,13 +154,13 @@ export default function AnnouncementsPage() {
           ...doc.data(),
         })) as Announcement[]
 
-        // Fetch author details for each announcement
         const announcementsWithAuthors = await Promise.all(
           announcementsData.map(async (ann) => {
             if (!ann.authorId) return ann
             const userDoc = await getDoc(doc(db, "users", ann.authorId))
             if (userDoc.exists()) {
-              return { ...ann, author: { id: userDoc.id, profile: userDoc.data().profile } }
+              const authorData = userDoc.data() as User
+              return { ...ann, author: { id: userDoc.id, profile: authorData.profile } }
             }
             return ann
           })
@@ -179,36 +183,56 @@ export default function AnnouncementsPage() {
   }, [user?.schoolId, toast])
 
   const handleCreateOrUpdate = async (data: Partial<Announcement>) => {
-    if (!user?.schoolId || !user.id) return
+    if (!user?.schoolId || !user.id || !user.profile) return
     setIsSubmitting(true)
 
     try {
       if (selectedAnnouncement) {
-        // Update existing announcement
         const docRef = doc(db, "announcements", selectedAnnouncement.id)
         await updateDoc(docRef, { ...data, updatedAt: serverTimestamp() })
-        setAnnouncements(
-          announcements.map((ann) =>
-            ann.id === selectedAnnouncement.id ? { ...ann, ...data } : ann
-          )
-        )
+        
+        const updatedAnnouncements = announcements.map((ann) =>
+          ann.id === selectedAnnouncement.id ? { ...ann, ...data, author: ann.author } : ann
+        );
+        setAnnouncements(updatedAnnouncements);
+        
         toast({ title: "Success", description: "Announcement updated successfully." })
       } else {
-        // Create new announcement
-        const docRef = await addDoc(collection(db, "announcements"), {
-          ...data,
-          schoolId: user.schoolId,
-          authorId: user.id,
-          createdAt: serverTimestamp(),
-          updatedAt: serverTimestamp(),
-        })
-        const newAnnouncement = {
+        const announcementToCreate = {
+            ...data,
+            schoolId: user.schoolId,
+            authorId: user.id,
+            authorName: `${user.profile.firstName} ${user.profile.lastName}`,
+            status: "published" as const,
+            priority: "medium" as const,
+            publishDate: serverTimestamp(),
+            createdAt: serverTimestamp(),
+            updatedAt: serverTimestamp(),
+        };
+
+        const docRef = await addDoc(collection(db, "announcements"), announcementToCreate);
+        
+        // FIX: Construct a new, complete object for the UI state update.
+        // Use the non-null assertion `!` on `data.title` and `data.content` because we know the form requires them.
+        const newAnnouncement: AnnouncementWithAuthor = {
           id: docRef.id,
-          ...data,
-          author: { id: user.id, profile: user.profile },
+          title: data.title!,
+          content: data.content!,
+          targetAudience: data.targetAudience || [],
+          authorId: user.id,
+          authorName: `${user.profile.firstName} ${user.profile.lastName}`,
+          status: "published",
+          priority: "medium",
+          schoolId: user.schoolId,
+          // Use local dates for the optimistic UI update
+          publishDate: new Date(),
           createdAt: new Date(),
-        } as AnnouncementWithAuthor
-        setAnnouncements([newAnnouncement, ...announcements])
+          updatedAt: new Date(),
+          // Add the author profile for display
+          author: { id: user.id, profile: user.profile },
+        };
+        setAnnouncements([newAnnouncement, ...announcements]);
+
         toast({ title: "Success", description: "Announcement published successfully." })
       }
       setIsDialogOpen(false)
@@ -241,8 +265,7 @@ export default function AnnouncementsPage() {
   const canManageAnnouncements = user?.role === "school_admin" || user?.role === "teacher"
 
   if (loading) {
-    // Uses the loading.tsx file in the same directory
-    return null
+    return <div>Loading announcements...</div>
   }
 
   return (
@@ -254,7 +277,10 @@ export default function AnnouncementsPage() {
           breadcrumbs={[{ title: "Dashboard", href: "/dashboard" }, { title: "Announcements" }]}
         >
           {canManageAnnouncements && (
-            <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+            <Dialog open={isDialogOpen} onOpenChange={(open) => {
+                if (!open) setSelectedAnnouncement(null);
+                setIsDialogOpen(open);
+            }}>
               <DialogTrigger asChild>
                 <Button onClick={() => setSelectedAnnouncement(null)}>
                   <PlusCircle className="mr-2 h-4 w-4" /> New Announcement
@@ -282,7 +308,7 @@ export default function AnnouncementsPage() {
         </DashboardHeader>
 
         {announcements.length === 0 ? (
-          <div className="flex flex-1 items-center justify-center rounded-lg border border-dashed shadow-sm">
+          <div className="flex flex-1 items-center justify-center rounded-lg border border-dashed shadow-sm min-h-[400px]">
             <div className="flex flex-col items-center gap-1 text-center">
               <Megaphone className="h-12 w-12 text-muted-foreground" />
               <h3 className="text-2xl font-bold tracking-tight">No Announcements Yet</h3>
@@ -296,7 +322,7 @@ export default function AnnouncementsPage() {
         ) : (
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
             {announcements.map((ann) => (
-              <Card key={ann.id}>
+              <Card key={ann.id} className="flex flex-col">
                 <CardHeader>
                   <CardTitle>{ann.title}</CardTitle>
                   <CardDescription className="flex items-center gap-2 pt-2">
@@ -309,20 +335,20 @@ export default function AnnouncementsPage() {
                     </Avatar>
                     <span>
                       By {ann.author?.profile?.firstName} {ann.author?.profile?.lastName || "Admin"} on{" "}
-                      {new Date(ann.createdAt).toLocaleDateString()}
+                      {ann.createdAt ? new Date((ann.createdAt as any).seconds * 1000).toLocaleDateString() : 'N/A'}
                     </span>
                   </CardDescription>
                 </CardHeader>
-                <CardContent>
+                <CardContent className="flex-grow">
                   <p className="text-sm text-muted-foreground line-clamp-4">{ann.content}</p>
                 </CardContent>
-                <CardFooter className="flex justify-between">
+                <CardFooter className="flex justify-between items-center">
                   <Badge variant="outline">
-                    {ann.targetAudience?.length
-                      ? ann.targetAudience.join(", ").replace(/^\w/, (c) => c.toUpperCase())
+                    {ann.targetAudience && ann.targetAudience.length > 0
+                      ? ann.targetAudience.map(r => r.charAt(0).toUpperCase() + r.slice(1)).join(", ")
                       : "All Users"}
                   </Badge>
-                  {canManageAnnouncements && ann.authorId === user.id && (
+                  {canManageAnnouncements && ann.authorId === user?.id && (
                     <div className="flex items-center gap-2">
                       <Button
                         variant="ghost"
@@ -337,7 +363,7 @@ export default function AnnouncementsPage() {
                       <Button
                         variant="ghost"
                         size="icon"
-                        className="text-destructive"
+                        className="text-destructive hover:text-destructive"
                         onClick={() => {
                           setSelectedAnnouncement(ann)
                           setIsAlertOpen(true)
@@ -363,8 +389,9 @@ export default function AnnouncementsPage() {
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogCancel onClick={() => setSelectedAnnouncement(null)}>Cancel</AlertDialogCancel>
             <AlertDialogAction onClick={handleDelete} disabled={isSubmitting}>
+              {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
               {isSubmitting ? "Deleting..." : "Continue"}
             </AlertDialogAction>
           </AlertDialogFooter>

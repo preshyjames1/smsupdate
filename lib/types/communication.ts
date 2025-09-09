@@ -1,3 +1,6 @@
+// FIX: Imported FieldValue to use in the Announcement interface
+import type { FieldValue } from "firebase/firestore"
+
 export interface Message {
   id: string
   senderId: string
@@ -21,10 +24,14 @@ export interface Announcement {
   authorName: string
   targetAudience: ("students" | "teachers" | "parents" | "staff")[]
   priority: "low" | "medium" | "high"
-  publishDate: Date
   expiryDate?: Date
   attachments?: string[]
   status: "draft" | "published" | "archived"
+  schoolId: string // <-- ADD THIS LINE
+  // FIX: Updated date types to be compatible with serverTimestamp()
+  publishDate: Date | FieldValue
+  createdAt: Date | FieldValue
+  updatedAt: Date | FieldValue
 }
 
 export interface Report {

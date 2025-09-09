@@ -2,33 +2,37 @@
 
 import { useState, useEffect } from "react"
 import { useAuth } from "@/lib/auth/context"
-import { collection, query, where, getDocs, addDoc, updateDoc, doc } from "firebase/firestore"
+import { collection, query, where, getDocs, addDoc, updateDoc, doc, serverTimestamp } from "firebase/firestore"
 import { db } from "@/lib/firebase"
-import { DashboardHeader } from "@/components/dashboard/dashboard-header"
 import { AttendanceTracker } from "@/components/academic/attendance-tracker"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Calendar } from "@/components/ui/calendar"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
-import { CalendarIcon } from "lucide-react"
+import { Label } from "@/components/ui/label"
+import { CalendarIcon, Loader2 } from "lucide-react"
 import { format } from "date-fns"
-import type { AttendanceRecord } from "@/lib/types/academic"
+import type { AttendanceRecord, Class } from "@/lib/types/academic"
+import type { User } from "@/lib/types"
+import { useToast } from "@/components/ui/use-toast"
 
 export default function AttendancePage() {
   const { user } = useAuth()
+  const { toast } = useToast()
   const [selectedClass, setSelectedClass] = useState("")
   const [selectedDate, setSelectedDate] = useState<Date>(new Date())
-  const [students, setStudents] = useState<any[]>([])
-  const [classes, setClasses] = useState<any[]>([])
+  const [students, setStudents] = useState<User[]>([])
+  const [classes, setClasses] = useState<Class[]>([])
   const [existingRecords, setExistingRecords] = useState<AttendanceRecord[]>([])
-  const [loading, setLoading] = useState(false)
-  const [dataLoading, setDataLoading] = useState(true)
+  const [isLoading, setIsLoading] = useState(false)
+  const [isDataLoading, setIsDataLoading] = useState(true)
 
   useEffect(() => {
     const fetchClasses = async () => {
       if (!user?.schoolId) return
 
+      setIsDataLoading(true)
       try {
         const classesQuery = query(
           collection(db, "classes"),
@@ -39,23 +43,28 @@ export default function AttendancePage() {
         const classesData = classesSnapshot.docs.map((doc) => ({
           id: doc.id,
           ...doc.data(),
-        }))
+        })) as Class[]
         setClasses(classesData)
       } catch (error) {
         console.error("Error fetching classes:", error)
+        toast({
+          variant: "destructive",
+          title: "Error",
+          description: "Failed to fetch classes. Please try again.",
+        })
       } finally {
-        setDataLoading(false)
+        setIsDataLoading(false)
       }
     }
 
     fetchClasses()
-  }, [user?.schoolId])
+  }, [user?.schoolId, toast])
 
   useEffect(() => {
     const fetchStudentsAndAttendance = async () => {
       if (!selectedClass || !user?.schoolId) return
 
-      setDataLoading(true)
+      setIsDataLoading(true)
       try {
         // Fetch students for selected class
         const studentsQuery = query(
@@ -66,13 +75,22 @@ export default function AttendancePage() {
           where("isActive", "==", true),
         )
         const studentsSnapshot = await getDocs(studentsQuery)
-        const studentsData = studentsSnapshot.docs.map((doc) => ({
-          id: doc.id,
-          name: `${doc.data().profile?.firstName} ${doc.data().profile?.lastName}`,
-          rollNumber: doc.data().profile?.rollNumber || doc.id.slice(-3),
-          avatar: doc.data().profile?.avatar,
-          ...doc.data(),
-        }))
+        const studentsData = studentsSnapshot.docs.map((doc) => {
+          const data = doc.data()
+          return {
+            id: doc.id,
+            email: data.email,
+            role: data.role,
+            schoolId: data.schoolId,
+            isActive: data.isActive,
+            createdAt: data.createdAt,
+            updatedAt: data.updatedAt,
+            profile: data.profile,
+            name: `${data.profile?.firstName ?? ""} ${data.profile?.lastName ?? ""}`.trim(),
+            rollNumber: data.profile?.rollNumber || doc.id.slice(-3),
+            avatar: data.profile?.avatar,
+          }
+        }) as User[]
         setStudents(studentsData)
 
         // Fetch existing attendance records for the selected date
@@ -90,18 +108,23 @@ export default function AttendancePage() {
         setExistingRecords(attendanceData)
       } catch (error) {
         console.error("Error fetching students and attendance:", error)
+        toast({
+          variant: "destructive",
+          title: "Error",
+          description: "Failed to fetch students and attendance. Please try again.",
+        })
       } finally {
-        setDataLoading(false)
+        setIsDataLoading(false)
       }
     }
 
     fetchStudentsAndAttendance()
-  }, [selectedClass, selectedDate, user?.schoolId])
+  }, [selectedClass, selectedDate, user?.schoolId, toast])
 
   const handleSaveAttendance = async (records: Partial<AttendanceRecord>[]) => {
     if (!user?.schoolId || !selectedClass) return
 
-    setLoading(true)
+    setIsLoading(true)
     try {
       const dateString = format(selectedDate, "yyyy-MM-dd")
 
@@ -113,8 +136,8 @@ export default function AttendancePage() {
           date: dateString,
           status: record.status,
           notes: record.notes || "",
-          markedBy: user.uid,
-          markedAt: new Date(),
+          markedBy: user.id,
+          markedAt: serverTimestamp(),
         }
 
         // Check if record already exists
@@ -125,8 +148,8 @@ export default function AttendancePage() {
           await updateDoc(doc(db, "attendance", existingRecord.id), {
             status: record.status,
             notes: record.notes || "",
-            markedBy: user.uid,
-            markedAt: new Date(),
+            markedBy: user.id,
+            markedAt: serverTimestamp(),
           })
         } else {
           // Create new record
@@ -148,62 +171,68 @@ export default function AttendancePage() {
       })) as AttendanceRecord[]
       setExistingRecords(attendanceData)
 
-      alert("Attendance saved successfully!")
+      toast({
+        title: "Success",
+        description: "Attendance saved successfully!",
+      })
     } catch (error) {
       console.error("Error saving attendance:", error)
-      alert("Failed to save attendance")
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to save attendance. Please try again.",
+      })
     } finally {
-      setLoading(false)
+      setIsLoading(false)
     }
   }
 
-  if (dataLoading) {
-    return (
-      <div className="flex flex-1 flex-col gap-4 p-4 pt-0">
-        <DashboardHeader breadcrumbs={[{ title: "Dashboard", href: "/dashboard" }, { title: "Attendance" }]} />
-        <div className="flex items-center justify-center h-64">
-          <div className="text-muted-foreground">Loading attendance data...</div>
-        </div>
-      </div>
-    )
-  }
-
   return (
-    <div className="flex flex-1 flex-col gap-4 p-4 pt-0">
-      <DashboardHeader breadcrumbs={[{ title: "Dashboard", href: "/dashboard" }, { title: "Attendance" }]} />
+    <div className="flex flex-1 flex-col gap-6 p-4 pt-0">
+      {/* Main page header */}
+      <div>
+        <h1 className="text-3xl font-bold tracking-tight">Attendance Settings</h1>
+        <p className="text-muted-foreground">Select class and date to mark attendance</p>
+      </div>
 
+      {/* Stacked card layout */}
       <div className="space-y-6">
-        {/* Class and Date Selection */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Attendance Settings</CardTitle>
-            <CardDescription>Select class and date to mark attendance</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {/* Controls Card */}
+        <Card className="bg-muted/20">
+          <CardContent className="p-6">
+            <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
               <div className="space-y-2">
-                <label className="text-sm font-medium">Select Class</label>
+                <Label>Select Class</Label>
                 <Select value={selectedClass} onValueChange={setSelectedClass}>
                   <SelectTrigger>
                     <SelectValue placeholder="Choose a class" />
                   </SelectTrigger>
                   <SelectContent>
-                    {classes.map((classData) => (
-                      <SelectItem key={classData.id} value={classData.id}>
-                        {classData.name} - {classData.section} (Grade {classData.grade})
-                      </SelectItem>
-                    ))}
+                    {isDataLoading ? (
+                      <div className="flex items-center justify-center p-4">
+                        <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                      </div>
+                    ) : classes.length === 0 ? (
+                      <div className="p-4 text-center text-muted-foreground">
+                        No classes available
+                      </div>
+                    ) : (
+                      classes.map((classItem) => (
+                        <SelectItem key={classItem.id} value={classItem.id}>
+                          {classItem.name} - {classItem.section}
+                        </SelectItem>
+                      ))
+                    )}
                   </SelectContent>
                 </Select>
               </div>
-
               <div className="space-y-2">
-                <label className="text-sm font-medium">Select Date</label>
+                <Label>Select Date</Label>
                 <Popover>
                   <PopoverTrigger asChild>
-                    <Button variant="outline" className="w-full justify-start text-left font-normal bg-transparent">
+                    <Button variant="outline" className="w-full justify-start text-left font-normal bg-background">
                       <CalendarIcon className="mr-2 h-4 w-4" />
-                      {selectedDate ? format(selectedDate, "PPP") : "Pick a date"}
+                      {selectedDate ? format(selectedDate, "PPP") : <span>Pick a date</span>}
                     </Button>
                   </PopoverTrigger>
                   <PopoverContent className="w-auto p-0">
@@ -212,6 +241,7 @@ export default function AttendancePage() {
                       selected={selectedDate}
                       onSelect={(date) => date && setSelectedDate(date)}
                       initialFocus
+                      disabled={(date) => date > new Date() || date < new Date("1900-01-01")}
                     />
                   </PopoverContent>
                 </Popover>
@@ -220,29 +250,35 @@ export default function AttendancePage() {
           </CardContent>
         </Card>
 
-        {/* Attendance Tracker */}
-        {selectedClass && students.length > 0 ? (
-          <AttendanceTracker
-            students={students}
-            date={selectedDate}
-            onSave={handleSaveAttendance}
-            existingRecords={existingRecords}
-            isLoading={loading}
-          />
-        ) : selectedClass && students.length === 0 ? (
-          <Card>
-            <CardContent className="text-center py-8">
-              <div className="text-muted-foreground">No students found in this class.</div>
-            </CardContent>
-          </Card>
-        ) : (
-          <Card>
-            <CardContent className="text-center py-8">
-              <div className="text-muted-foreground">Please select a class to start marking attendance.</div>
-            </CardContent>
-          </Card>
-        )}
+        {/* Content Card */}
+        <Card className="bg-muted/20">
+          <CardContent className="p-6">
+            {selectedClass ? (
+              isDataLoading ? (
+                <div className="flex h-40 items-center justify-center">
+                  <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+                </div>
+              ) : students.length > 0 ? (
+                <AttendanceTracker
+                  students={students}
+                  date={selectedDate}
+                  onSave={handleSaveAttendance}
+                  existingRecords={existingRecords}
+                  isLoading={isLoading}
+                />
+              ) : (
+                <div className="flex h-40 items-center justify-center text-center text-muted-foreground">
+                  <p>No students found for this class.</p>
+                </div>
+              )
+            ) : (
+              <div className="flex h-40 items-center justify-center text-center text-muted-foreground">
+                <p>Please select a class to start marking attendance.</p>
+              </div>
+            )}
+          </CardContent>
+        </Card>
       </div>
     </div>
-  )
+  );
 }
